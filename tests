@@ -1,0 +1,9 @@
+#!/bin/sh
+
+
+
+echo "Testing standard input:"
+./topTeams input ./sample-input.txt
+
+echo "Testing piped input:"
+cat sample-input.txt | ./topTeams

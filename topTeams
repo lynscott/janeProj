@@ -1,0 +1,135 @@
+#!/usr/bin/env node
+const fs = require('fs');
+const readline = require('readline')
+const args = process.argv;
+const commands = ['input'];
+const gameMap = new Map()
+
+let matchDayLength = null
+let matchesPlayed = 0
+let matchDays = 1
+
+function getInput() {
+    return new Promise(function (resolve, reject) {
+        const stdin = process.stdin;
+        let data = '';
+
+        stdin.setEncoding('utf8');
+        const lineReader = readline.createInterface({ input: stdin });
+
+        lineReader.on('line', function (line) {
+            processMatch(line)
+        });
+
+        stdin.on('end', function () {
+            printTop3(matchDays)
+            resolve(data);
+        });
+
+        stdin.on('error', reject);
+    });
+}
+
+getInput()
+
+function read(filePath) {
+    const readableStream = fs.createReadStream(filePath, 'utf8');
+    const lineReader = readline.createInterface({ input: readableStream });
+
+    lineReader.on('error', function (error) {
+        console.error(error);
+    })
+
+
+    lineReader.on("line", processMatch).on('close', () => {
+        console.log(printTop3(matchDays))
+        process.exit(0);
+    });
+
+}
+
+const printTop3 = matchDays => {
+    // first sort alphabetically
+    const top = Array.from(gameMap.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+    // then by top score
+    const top3 = top.sort((a, b) => b[1] - a[1]).slice(0, 3)
+
+    console.log("Matchday " + matchDays)
+    console.log(`${top3[0][0]}, ${top3[0][1]}`)
+    console.log(`${top3[1][0]}, ${top3[1][1]}`)
+    console.log(`${top3[2][0]}, ${top3[2][1]}`)
+    console.log("\n")
+}
+
+const addToMap = (team, points) => {
+    if (gameMap.has(team)) {
+        gameMap.set(team ?? "N/A", gameMap.get(team) + points)
+    } else {
+        gameMap.set(team ?? "N/A", points)
+    }
+}
+
+const processMatch = (line) => {
+    const op1 = line.split(",")[0]
+    const op1Score = Number(op1.charAt(op1.length - 1)) ?? 0
+    const op1Name = op1.match(/[a-zA-Z]+/g).join(" ")
+
+    const op2 = line.split(",")[1]
+    const op2Score = Number(op2.charAt(op2.length - 1)) ?? 0
+    const op2Name = op2.match(/[a-zA-Z]+/g).join(" ")
+
+    if (matchDayLength && matchDayLength === matchesPlayed) {
+        printTop3(matchDays)
+        matchesPlayed = 0
+        matchDays++
+
+
+    } else if (!matchDayLength && (gameMap.has(op1Name) || gameMap.has(op2Name))) {
+        matchDayLength = matchesPlayed
+        matchesPlayed = 0
+        printTop3(matchDays)
+        matchDays++
+    }
+
+    matchesPlayed++
+
+    // process match
+    if (op1Score > op2Score) {
+        addToMap(op1Name, 3)
+    } else if (op1Score === op2Score) {
+        addToMap(op1Name, 1)
+        addToMap(op2Name, 1)
+    } else if (op1Score < op2Score) {
+        addToMap(op2Name, 3)
+    }
+
+}
+
+
+let command = '';
+
+if (args.length < 3) {
+    console.log('Missing filepath');
+    process.exit(0);
+}
+else if (args.length > 4) {
+    console.log('More arguments provided than expected');
+    process.exit(0);
+}
+else {
+    command = args[2]
+    if (!args[3]) {
+        console.log('This tool requires at least one path to a file');
+        process.exit(0);
+    }
+}
+
+
+switch (commands.indexOf(command)) {
+    case 0:
+        read(args[3]);
+        break;
+    default:
+        console.log(`Invalid command ${command}, input is the only option.`);
+        process.exit(0);
+}
