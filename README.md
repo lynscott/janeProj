@@ -1,4 +1,4 @@
-# janeProj
+# Process soccer matches
 
 Top Secret Project for Jane ;)
 
